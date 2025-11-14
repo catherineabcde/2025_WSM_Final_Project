@@ -1,2 +1,2 @@
-# 2025_WSM_Final_Project
-RAG implementation
+# WSM Final Project: 2025 WSM RAG Cup
+RAG implementation with open source tools (:
