@@ -5,3 +5,6 @@ ollama
 tqdm
 PyYAML
 pydantic
+langchain
+langchain-experimental
+langchain-huggingface
