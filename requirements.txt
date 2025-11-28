@@ -5,3 +5,4 @@ ollama
 tqdm
 PyYAML
 pydantic
+pyserini
