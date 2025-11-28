@@ -28,13 +28,23 @@ def load_ollama_config() -> dict:
 
 
 def generate_answer(query, context_chunks, language):
+    #增強型context
     formatted_context = []
     for i, chunk in enumerate(context_chunks):
-        # 根據 metadata 加入公司名稱或時間
+        # 如果 metadata 有公司名或時間，最好加進去 header
         meta_info = ""
         if 'metadata' in chunk:
-            company = chunk['metadata'].get('company_name', '') 
-            meta_info = f"[Company: {company}]" if company else ""
+            # 假設 metadata 裡有 'company' 或 'date' 欄位
+            if 'company' in chunk['metadata']:
+                company = chunk['metadata']['company']
+                meta_info = f"[Company: {company}]" 
+            elif 'court_name' in chunk['metadata']:
+                court_name = chunk['metadata']['court_name']
+                meta_info = f"[Court Name: {court_name}]" 
+            elif 'hospital_patient_name' in chunk['metadata']:
+                hospital_patient_name = chunk['metadata']['hospital_patient_name']
+                meta_info = f"[Hospital Patient Name: {hospital_patient_name}]" 
+
         formatted_context.append(f"--- Document Fragment {i+1} {meta_info} ---\n{chunk['page_content']}")
 
     context = "\n\n".join(formatted_context)
@@ -59,7 +69,7 @@ Before generating the final answer, please follow these steps for logical reason
 
 ### Formatting Constraints:\n
 - **Language**: Answer strictly in **English**.\n
-- **Refusal**: If the answer is not present in the context, reply exactly: "Unable to answer." Do NOT make up an answer.\n
+- **Refusal**: If the context contains partial information relevant to the question, please answer based on what is available. Only reply "Unable to answer" if the context contains absolutely no relevant information. Do NOT make up an answer not supported by the context.\n
 - **Conciseness**: Provide the conclusion directly; do not output your internal thought process.\n
 
 ### Answer:
@@ -87,7 +97,7 @@ Before generating the final answer, please follow these steps for logical reason
 
 ### 格式约束：\n
 - **语言**：请使用**简体中文**回答。\n
-- **拒答**：如果上下文中确实没有答案，请直接回复：“无法回答。” 不要编造。\n
+- **拒答**：如果上下文中包含部分相关信息，请基于现有信息回答。只有在上下文中完全找不到相关信息时，才回复：“无法回答。” 不要编造上下文中没有的内容。\n
 - **简洁**：直接给出结论，不需要输出你的思考过程。\n
 
 ### 回答：\n

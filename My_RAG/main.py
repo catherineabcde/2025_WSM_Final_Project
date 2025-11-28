@@ -3,6 +3,7 @@ from utils import load_jsonl, save_jsonl
 from chunker import chunk_documents
 from retriever import create_retriever
 from generator import generate_answer
+from pyserini_bm25 import BM25Okapi
 import argparse
 
 def main(query_path, docs_path, language, output_path):
@@ -14,14 +15,21 @@ def main(query_path, docs_path, language, output_path):
     print(f"Loaded {len(queries)} queries.")
 
     # 2. Chunk Documents
-    print("Chunking documents...")
-    chunks = chunk_documents(docs_for_chunking, language)
-    print(f"Created {len(chunks)} chunks.")
-
+    #print("Chunking documents...")
+    #chunks = chunk_documents(docs_for_chunking, language)
+    #print(f"Created {len(chunks)} chunks.")
+    
     # 3. Create Retriever
-    print("Creating retriever...")
-    retriever = create_retriever(chunks, language)
-    print("Retriever created successfully.")
+    #print("Creating retriever...")
+    #retriever = create_retriever(chunks, language)
+    #print("Retriever created successfully.")
+
+    if language == "zh":
+        index = "./zh_index"
+        retriever = BM25Okapi(index,language="zh",k=3)
+    else:
+        index = "./en_index"
+        retriever = BM25Okapi(index,language="en",k=5)
 
 
     for query in tqdm(queries, desc="Processing Queries"):
