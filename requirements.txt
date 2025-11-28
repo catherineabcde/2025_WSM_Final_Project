@@ -5,4 +5,10 @@ ollama
 tqdm
 PyYAML
 pydantic
+<<<<<<< Updated upstream
+=======
+langchain
+langchain-experimental
+langchain-huggingface
+>>>>>>> Stashed changes
 pyserini
