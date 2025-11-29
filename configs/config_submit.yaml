@@ -1,0 +1,3 @@
+ollama:
+  host: "http://ollama-gateway:11434"
+  model: "granite4:3b"

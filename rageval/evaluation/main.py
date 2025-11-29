@@ -5,7 +5,8 @@ from pathlib import Path
 from tqdm import tqdm
 from metrics import get_metric
 
-def init_worker(evaluator_names, use_openai=True, model='gpt-4o-mini', version='v1'):
+# def init_worker(evaluator_names, use_openai=True, model='gpt-4o-mini', version='v1'):
+def init_worker(evaluator_names, use_openai=True, model='llama3.2:3b', version='v1'):
     global evaluators
     evaluators = []
     for evaluator_name in evaluator_names:
@@ -17,7 +18,8 @@ def init_worker(evaluator_names, use_openai=True, model='gpt-4o-mini', version='
     if not evaluators:
         raise ValueError("No correct evaluators are provided")
 
-def process_item(item, language="zh", idx=0, evaluator_names=None, use_openai=False, model='gpt-4o-mini', version='v1'):
+# def process_item(item, language="zh", idx=0, evaluator_names=None, use_openai=False, model='gpt-4o-mini', version='v1'):
+def process_item(item, language="zh", idx=0, evaluator_names=None, use_openai=False, model='llama3.2:3b', version='v1'):
     ground_truth = item["ground_truth"]
     results = None 
     init_worker(evaluator_names, use_openai, model, version)
@@ -29,7 +31,8 @@ def process_item(item, language="zh", idx=0, evaluator_names=None, use_openai=Fa
             item.update(result)
     return idx, item
 
-def process_jsonl(input_file, output_file, evaluator_names, num_workers, use_openai=False, language="zh", model='gpt-4o-mini', version='v1'):
+# def process_jsonl(input_file, output_file, evaluator_names, num_workers, use_openai=False, language="zh", model='gpt-4o-mini', version='v1'):
+def process_jsonl(input_file, output_file, evaluator_names, num_workers, use_openai=False, language="zh", model='llama3.2:3b', version='v1'):
     input_path = Path(input_file)
     output_path = Path(output_file)
 
@@ -68,7 +71,8 @@ def main():
 
     args = parser.parse_args()
     evaluator_names = ["rouge-l", "precision", "recall", "eir", "keypoint_metrics"]
-    process_jsonl(args.input_file, args.output_file, evaluator_names, args.num_workers, True, args.language, "llama3.3:70b", "v1")
+    # process_jsonl(args.input_file, args.output_file, evaluator_names, args.num_workers, True, args.language, "llama3.3:70b", "v1") # llama3.2:3b
+    process_jsonl(args.input_file, args.output_file, evaluator_names, args.num_workers, True, args.language, "llama3.2:3b", "v1")
 
 if __name__ == "__main__":
     main()

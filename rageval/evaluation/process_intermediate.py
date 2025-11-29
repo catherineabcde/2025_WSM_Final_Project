@@ -33,8 +33,8 @@ def process_folder(folder_path: str, output_file: str, metric_list: List[str]):
         json.dump(results, f, indent=2, ensure_ascii=False)
 
 if __name__ == "__main__":
-    folder_path = './result'
-    output_file = './result/final_result.json'
+    folder_path = './results'
+    output_file = './results/final_result.json'
     metric_list = ['EIR', 'Precision', 'Recall', 'ROUGELScore', "completeness", "hallucination", "irrelevance"]
     
     process_folder(folder_path, output_file, metric_list)

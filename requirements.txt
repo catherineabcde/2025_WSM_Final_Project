@@ -1,5 +1,17 @@
 jsonlines
 rank_bm25
 jieba
+jsonlines
+nltk
+numpy
 ollama
+openai
+rouge
+rouge-chinese
 tqdm
+PyYAML
+pydantic
+pysbd
+langchain
+langchain-experimental
+langchain-huggingface
