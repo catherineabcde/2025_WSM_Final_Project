@@ -8,6 +8,7 @@ ollama
 openai
 rouge
 rouge-chinese
+sentence_transformers
 tqdm
 PyYAML
 pydantic
