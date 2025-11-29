@@ -1,7 +1,11 @@
 from rank_bm25 import BM25Okapi
 import jieba
+import numpy as np
+from sentence_transformers import SentenceTransformer
+import faiss
+from utils import rrf_fusion
 
-class BM25Retriever:
+class HybridRetriever:
     def __init__(self, chunks, language="en"):
         self.chunks = chunks
         self.language = language
@@ -12,14 +16,52 @@ class BM25Retriever:
             self.tokenized_corpus = [doc.split(" ") for doc in self.corpus]
         self.bm25 = BM25Okapi(self.tokenized_corpus)
 
+        # Dense Index
+        if language == "zh":
+            model_name = 'Qwen/Qwen3-Embedding-0.6B'
+        else:
+            model_name = 'google/embeddinggemma-300m'
+        self.encoder = SentenceTransformer(model_name)
+        embeddings = self.encoder.encode(self.corpus, convert_to_numpy=True, show_progress_bar=True)
+        dimension = embeddings.shape[1]
+        self.index = faiss.IndexFlatIP(dimension)
+        faiss.normalize_L2(embeddings)
+        self.index.add(embeddings)
+
     def retrieve(self, query, top_k=5):
+        candidate_k = min(100, len(self.chunks))
         if self.language == "zh":
             tokenized_query = list(jieba.cut(query))
         else:
             tokenized_query = query.split(" ")
-        top_chunks = self.bm25.get_top_n(tokenized_query, self.chunks, n=top_k)
+        bm25_scores = self.bm25.get_scores(tokenized_query)
+        sparse_top_indices = np.argsort(bm25_scores)[::-1][:candidate_k]
+        sparse_hits = [SimpleHit(docid=chunk['doc_id'], score=bm25_scores[i]) for idx in sparse_top_indices]
+
+        query_vector = self.encoder.encode([query], convert_to_numpy=True)
+        faiss.normalize_L2(query_vector)
+        dense_scores, dense_indices = self.index.search(query_vector, candidate_k)
+        dense_hits = []
+        for score, idx in zip(dense_scores[0], dense_indices[0]):
+            if idx != -1:   
+                dense_hits.append(SimpleHit(docid=chunk['doc_id'], score=score))
+
+        rrf_results = rrf_fusion(sparse_hits, dense_hits, k=60)
+        top_chunks = []
+        for docid, score in rrf_results[:top_k]:
+            original_chunk = self.chunks[docid]
+            result_chunk = {
+                'page_content': original_chunk['page_content'],
+                'metadata': {
+                    'id': docid,
+                    'score': score,
+                    'type': 'hybrid_rf'
+                }
+            }
+            top_chunks.append(result_chunk)
+
         return top_chunks
 
 def create_retriever(chunks, language):
-    """Creates a BM25 retriever from document chunks."""
-    return BM25Retriever(chunks, language)
+    """Creates a hybrid retriever from document chunks."""
+    return HybridRetriever(chunks, language)
