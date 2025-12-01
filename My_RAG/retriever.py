@@ -18,8 +18,8 @@ class HybridRetriever:
         self.bm25 = BM25Okapi(self.tokenized_corpus)
 
         # Dense Index
-        # ollama_host = os.getenv('OLLAMA_HOST', 'http://ollama-gateway:11434')
-        ollama_host = 'http://localhost:11434'
+        ollama_host = os.getenv('OLLAMA_HOST', 'http://ollama-gateway:11434')
+        # ollama_host = 'http://localhost:11434'
         self.client = Client(host=ollama_host)
 
         if language == "zh":
