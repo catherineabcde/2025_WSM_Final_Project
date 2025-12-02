@@ -4,10 +4,11 @@ from utils import load_jsonl, save_jsonl
 from chunker import chunk_documents
 from retriever import create_retriever
 # from denseRetriever import create_retriever 
-from generator import generate_answer
+# from generator import generate_answer
+from generator_refine import generate_answer
 import argparse
 from query_rewriter import rewrite_query
-from sklearn.cluster import KMeans
+# from sklearn.cluster import KMeans
 import numpy as np
 import re
 
