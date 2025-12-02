@@ -111,18 +111,18 @@ Original question:
 
 
 def rewrite_query_hyde(query: str, language: str = "zh") -> List[str]:
-    
+    print("Rewriting query with hyde...")
     client, model = _get_ollama_client()
 
     if language == "zh":
-        prompt = f"""你是一個用來協助文件檢索的回答生成器。
-根據下面的問題，寫出一段合理、正式且精簡的回答，就像文件中的一段說明文字。
-請在內容中盡量包含關鍵實體名稱與重要細節，以利檢索相關文件。
+        prompt = f"""你是一个用来协助文件检索的回答生成器。
+根据下面的问题，写出一段合理、正式且精简的回答，就像文件中的一段说明文字。
+请在内容中尽量包含关键实体名称与重要细节，以利检索相关文件。
 
-問題：
+问题：
 {query}
 
-請只輸出回答內容，不要加任何額外說明：
+请只输出回答内容，不要加任何额外说明：
 """
     else:
         prompt = f"""You are an assistant that generates a hypothetical answer to help document retrieval.
