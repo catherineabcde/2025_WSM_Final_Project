@@ -4,39 +4,13 @@ from utils import load_jsonl, save_jsonl
 from chunker import chunk_documents
 from retriever import create_retriever
 # from denseRetriever import create_retriever 
-from generator import generate_answer
+# from generator import generate_answer
+from generator_refine import generate_answer
 import argparse
 from query_rewriter import rewrite_query
-from sklearn.cluster import KMeans
+# from sklearn.cluster import KMeans
 import numpy as np
 import re
-
-def split_sentences(text, language="zh"):
-    """
-    將文字切分成句子列表。
-    支援中文全形標點 (。？！) 與英文半形標點 (.?!)
-    """
-    if not text:
-        return []
-        
-    text = text.strip()
-    
-    # 定義切分符號：包含中文與英文的句號、問號、驚嘆號
-    # 這裡使用正則表達式，保留標點符號在句子結尾（如果需要的話）
-    # 但為了你的 Precision 判斷 (if q in r)，把標點去掉通常比較容易對上
-    
-    if language == "zh":
-        # 針對中文環境，主要切分：。？！
-        # 這裡的邏輯是：只要遇到這些符號就切斷
-        sentences = re.split(r'[。？！.?!]', text)
-    else:
-        # 針對純英文環境，主要切分：.?!
-        sentences = re.split(r'[.?!]', text)
-        
-    # 過濾掉切分後產生的空字串或只剩空白的字串
-    sentences = [s.strip() for s in sentences if s.strip()]
-    
-    return sentences
 
 def main(query_path, docs_path, language, output_path):
     # 1. Load Data
@@ -125,40 +99,46 @@ def main(query_path, docs_path, language, output_path):
         answer = generate_answer(query_text, final_chunks, language)
         print(f"Generated Answer: {answer}") #for test prompt
 
-        # Filtering for precision rule
-        refined_references = []
-        q_chars = set(query_text)
-        for chunk in final_chunks:
-            sentences = split_sentences(chunk["page_content"], language)
-
-            if not sentences:
-                sentences = [chunk["page_content"]]
-
-            best_sent = ""
-            max_score = -1
-            
-            for sent in sentences:
-                if len(sent.strip()) < 2:
-                    continue
-                sent_chars = set(sent)
-                # Jaccard Similarity
-                intersection = q_chars & sent_chars
-                union = q_chars | sent_chars
-                if not union:
-                    score = 0
-                else:
-                    score = len(intersection) / len(union)
-                if score > max_score:
-                    max_score = score
-                    best_sent = sent
-                
-                if best_sent and max_score > 0:
-                    refined_references.append(best_sent)
-                else:
-                    refined_references.append(chunk["page_content"])
-            
         query["prediction"]["content"] = answer
-        query["prediction"]["references"] = refined_references   
+        if final_chunks:
+            query["prediction"]["references"] = [c["page_content"] for c in final_chunks]   
+        else:
+            query["prediction"]["references"] = []  
+
+        # Filtering for precision rule
+        # refined_references = []
+        # q_chars = set(query_text)
+        # for chunk in final_chunks:
+        #     sentences = split_sentences(chunk["page_content"], language)
+
+        #     if not sentences:
+        #         sentences = [chunk["page_content"]]
+
+        #     best_sent = ""
+        #     max_score = -1
+            
+        #     for sent in sentences:
+        #         if len(sent.strip()) < 2:
+        #             continue
+        #         sent_chars = set(sent)
+        #         # Jaccard Similarity
+        #         intersection = q_chars & sent_chars
+        #         union = q_chars | sent_chars
+        #         if not union:
+        #             score = 0
+        #         else:
+        #             score = len(intersection) / len(union)
+        #         if score > max_score:
+        #             max_score = score
+        #             best_sent = sent
+                
+        #         if best_sent and max_score > 0:
+        #             refined_references.append(best_sent)
+        #         else:
+        #             refined_references.append(chunk["page_content"])
+            
+        # query["prediction"]["content"] = answer
+        # query["prediction"]["references"] = refined_references   
         # if final_chunks:
         #     query["prediction"]["references"] = refined_references   
         # else:
