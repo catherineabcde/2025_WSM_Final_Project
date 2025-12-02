@@ -1,16 +1,20 @@
 from rank_bm25 import BM25Okapi
 import jieba
 import numpy as np
-from ollama import Client
+import ollama
 import faiss
-from utils import rrf_fusion, SimpleHit
+from utils import rrf_fusion, SimpleHit , load_embedding_config
 import os
+from tqdm import tqdm
 
 class HybridRetriever:
-    def __init__(self, chunks, language="en"):
+    def __init__(self, chunks, language="en" , use_ollama=False, ollama_config=None):
         self.chunks = chunks
         self.language = language
+        self.use_ollama = use_ollama
+        self.ollama_config = ollama_config
         self.corpus = [chunk['page_content'] for chunk in chunks]
+        
         if language == "zh":
             self.tokenized_corpus = [list(jieba.cut(doc)) for doc in self.corpus]
         else:
@@ -18,19 +22,23 @@ class HybridRetriever:
         self.bm25 = BM25Okapi(self.tokenized_corpus)
 
         # Dense Index
-        ollama_host = os.getenv('OLLAMA_HOST', 'http://ollama-gateway:11434')
-        # ollama_host = 'http://localhost:11434'
-        self.client = Client(host=ollama_host)
-
-        if language == "zh":
-            self.model_name = 'qwen3-embedding:0.6b'
+        if self.use_ollama and self.ollama_config:
+            print(f"Using Ollama model: {ollama_config['model']} at {ollama_config['host']}")
+            self.client = ollama.Client(host=ollama_config['host'])
+            self.model_name = ollama_config['model']
+            
+            # Generate embeddings using Ollama
+            # Note: Ollama python client might not support batch embedding efficiently in all versions, 
+            # but let's try to iterate if needed or use batch if supported.
+            # The denseRetriever.py uses self.client.embeddings(model=..., prompt=...) which is single input.
+            # We need to loop for corpus.
+            print("Generating embeddings with Ollama...")
+            embeddings = []
+            for doc in tqdm(self.corpus, desc="Generating embeddings"):
+                response = self.client.embeddings(model=self.model_name, prompt=doc)
+                embeddings.append(response['embedding'])
         else:
-            self.model_name = 'embeddinggemma:300m'
-        
-        embeddings = []
-        for text in self.corpus:
-            response = self.client.embeddings(model=self.model_name, prompt=text)
-            embeddings.append(response['embedding'])
+            raise ValueError("No Ollama config found. Please check your configuration files.")
             
         self.doc_embeddings = np.array(embeddings).astype('float32')
         dimension = self.doc_embeddings.shape[1]
@@ -78,4 +86,9 @@ class HybridRetriever:
 
 def create_retriever(chunks, language):
     """Creates a hybrid retriever from document chunks."""
-    return HybridRetriever(chunks, language)
+    ollama_config = load_embedding_config(language=language)
+
+    if not ollama_config:
+        raise ValueError("Failed to load Ollama config. Please check your configuration files.")
+
+    return HybridRetriever(chunks, language, use_ollama=True, ollama_config=ollama_config)
