@@ -47,7 +47,9 @@ def main(query_path, docs_path, language, output_path):
 
         all_chunks = []
         for q in rewritten_queries:
-            retrieved = retriever.retrieve(q, top_k=5)
+            # for hyde mode
+            retrieved = retriever.retrieve(q, top_k=FINAL_TOP_K)
+            # for multi mode
             # retrieved = retriever.retrieve(q, top_k=FINAL_TOP_K*CANDIDATE_FACTOR)
             all_chunks.extend(retrieved)
 
