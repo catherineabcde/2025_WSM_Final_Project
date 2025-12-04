@@ -2,9 +2,6 @@ import numpy as np
 import faiss
 from utils import rrf_fusion, SimpleHit
 import ollama
-import yaml
-from pathlib import Path
-import torch
 from utils import load_embedding_config
 from tqdm import tqdm
 
