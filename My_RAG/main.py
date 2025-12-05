@@ -3,8 +3,9 @@ from pathlib import Path
 from utils import load_jsonl, save_jsonl
 #from chunker import chunk_documents
 from retriever import create_retriever
-#from denseRetriever import dense_retriever 
+from denseRetriever import dense_retriever 
 from dynamicChunker import chunk_documents
+from recursiveChunker import recursive_chunk
 from generator import generate_answer
 import argparse
 from query_rewriter import rewrite_query
@@ -19,19 +20,29 @@ def main(query_path, docs_path, language, output_path):
 
     # 2. Chunk Documents
     print("Chunking documents...")
-    chunks = chunk_documents(docs_for_chunking, language)
+    if language=="zh":
+        chunks = chunk_documents(docs_for_chunking, language)
+    else:
+        chunks = recursive_chunk(docs_for_chunking, language, chunk_size=1024)
     print(f"Created {len(chunks)} chunks.")
 
     # 3. Create Retriever
     print("Creating retriever...")
-    retriever = create_retriever(chunks, language)
+    if language=="zh":
+        retriever = create_retriever(chunks, language)
+    else:
+        retriever = dense_retriever(chunks, language)
     print("Retriever created successfully.")
 
 
     for query in tqdm(queries, desc="Processing Queries"):
         # 4. Retrieve relevant chunks
         query_text = query["query"]["content"]
-
+        if language == "zh":
+            FINAL_TOP_K = 5
+        elif language == "en":
+            FINAL_TOP_K = 5
+        '''
         # choose mode: "none" / "multi" / "hyde" / "decompose" / "stepback"
         rewritten_queries = rewrite_query(
             query_text,
@@ -39,10 +50,7 @@ def main(query_path, docs_path, language, output_path):
             mode="hyde",      # or "multi", "hyde", "decompose", "stepback" ,"none"
             num_queries=3      # optional, for "multi"
         )
-        if language == "zh":
-            FINAL_TOP_K = 5
-        elif language == "en":
-            FINAL_TOP_K = 5
+       
         # CANDIDATE_FACTOR = 4
 
         all_chunks = []
@@ -64,7 +72,8 @@ def main(query_path, docs_path, language, output_path):
                 unique[key] = c
 
         final_chunks = list(unique.values())[:FINAL_TOP_K]
-
+        '''
+        final_chunks = retriever.retrieve(query_text, top_k=FINAL_TOP_K)
         # 5. Generate Answer
         print("Generating answer...")
         answer = generate_answer(query_text, final_chunks, language)

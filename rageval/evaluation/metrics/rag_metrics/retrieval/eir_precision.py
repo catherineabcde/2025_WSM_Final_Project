@@ -4,8 +4,8 @@ from typing import List
 from pysbd import Segmenter
 segmenter = Segmenter()
 
-class EIR:
-    name: str = "EIR"
+class EIR_Precision:
+    name: str = "Sentences_Precision"
     
     def __init__(self, threshold=0.2):
         self.threshold = threshold

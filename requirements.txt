@@ -17,3 +17,5 @@ pysbd
 langchain
 langchain-experimental
 langchain-huggingface
+langchain_ollama
+langchain-text-splitters

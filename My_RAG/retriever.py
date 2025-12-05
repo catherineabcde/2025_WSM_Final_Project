@@ -34,9 +34,15 @@ class HybridRetriever:
             # We need to loop for corpus.
             print("Generating embeddings with Ollama...")
             embeddings = []
-            for doc in tqdm(self.corpus, desc="Generating embeddings"):
-                response = self.client.embeddings(model=self.model_name, prompt=doc)
-                embeddings.append(response['embedding'])
+            batch_size = 32
+            for i in tqdm(range(0, len(self.corpus), batch_size), desc="Generating embeddings"):
+                batch_docs = self.corpus[i : i + batch_size]
+                try:
+                    response = self.client.embed(model=self.model_name, input=batch_docs)
+                    embeddings.extend(response['embeddings'])
+                except Exception as e:
+                    print(f"Error embedding batch {i}: {e}")
+                    raise e
         else:
             raise ValueError("No Ollama config found. Please check your configuration files.")
             

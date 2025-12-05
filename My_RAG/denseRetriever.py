@@ -26,18 +26,25 @@ class DenseRetriever:
             # The denseRetriever.py uses self.client.embeddings(model=..., prompt=...) which is single input.
             # We need to loop for corpus.
             print("Generating embeddings with Ollama...")
-            embeddings_list = []
-            for doc in tqdm(self.corpus, desc="Generating embeddings"):
-                response = self.client.embeddings(model=self.model_name, prompt=doc)
-                embeddings_list.append(response['embedding'])
-            embeddings = np.array(embeddings_list).astype('float32')
+            embeddings = []
+            batch_size = 32
+            for i in tqdm(range(0, len(self.corpus), batch_size), desc="Generating embeddings"):
+                batch_docs = self.corpus[i : i + batch_size]
+                try:
+                    response = self.client.embed(model=self.model_name, input=batch_docs)
+                    embeddings.extend(response['embeddings'])
+                except Exception as e:
+                    print(f"Error embedding batch {i}: {e}")
+                    raise e
         else:
             raise ValueError("No Ollama config found. Please check your configuration files.")
             
-        dimension = embeddings.shape[1]
+        self.doc_embeddings = np.array(embeddings).astype('float32')
+        dimension = self.doc_embeddings.shape[1]
         self.index = faiss.IndexFlatIP(dimension)
-        faiss.normalize_L2(embeddings)
-        self.index.add(embeddings)
+        faiss.normalize_L2(self.doc_embeddings)
+        self.index.add(self.doc_embeddings)
+
 
     def retrieve(self, query, top_k=5):
         # 2. Dense Retrieval (Embedding + FAISS)
@@ -77,7 +84,7 @@ class DenseRetriever:
 
         return top_chunks
 
-def create_retriever(chunks, language):
+def dense_retriever(chunks, language):
     """Creates a hybrid retriever from document chunks."""
     ollama_config = load_embedding_config(language=language)
     

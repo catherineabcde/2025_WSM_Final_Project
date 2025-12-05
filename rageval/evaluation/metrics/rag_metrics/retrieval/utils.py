@@ -1,7 +1,8 @@
 from typing import List, Union
 import re
-from nltk.tokenize import sent_tokenize
+from nltk.tokenize import sent_tokenize, word_tokenize
 from pysbd import Segmenter
+import jieba
 
 segmenter = Segmenter()
 
@@ -36,3 +37,19 @@ def exist_match(query_text: Union[List[str], str], reference_texts: List[str], l
             return 0
     
     return 1
+
+def split_words(text: Union[List[str], str], language: str) -> List[str]:
+    """Splits text into words based on the language."""
+    if isinstance(text, list):
+        text = " ".join(text)
+    
+    words = []
+    if language == 'zh':
+        words = list(jieba.cut(text))
+    elif language == 'en':
+        words = word_tokenize(text.lower())
+    else:
+        # Fallback for other languages
+        words = text.lower().split()
+        
+    return [word for word in words if word.strip()]

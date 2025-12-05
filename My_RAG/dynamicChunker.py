@@ -27,8 +27,7 @@ def chunk_documents(docs, language):
             original_text = doc['content']
             lang = doc['language']
             if language == "en":
-                sentences = nltk.sent_tokenize(original_text)
-                text = "<SENT_SEP>".join(sentences)
+                text = original_text
             else:
                 text = original_text.replace("\n", "")
             
@@ -46,7 +45,7 @@ def chunk_documents(docs, language):
             breakpoint_threshold_type="percentile",
             breakpoint_threshold_amount=80,
             buffer_size=3,
-            sentence_split_regex="<SENT_SEP>"
+            sentence_split_regex="(?<=\n)"
         )
     elif language=="zh":
         # tested
