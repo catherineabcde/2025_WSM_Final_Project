@@ -3,8 +3,7 @@ from pathlib import Path
 from utils import load_jsonl, save_jsonl
 #from chunker import chunk_documents
 from retriever import create_retriever
-from denseRetriever import dense_retriever 
-from dynamicChunker import chunk_documents
+from semanticChunker import chunk_documents
 from recursiveChunker import recursive_chunk
 from generator import generate_answer
 import argparse
@@ -28,10 +27,7 @@ def main(query_path, docs_path, language, output_path):
 
     # 3. Create Retriever
     print("Creating retriever...")
-    if language=="zh":
-        retriever = create_retriever(chunks, language)
-    else:
-        retriever = dense_retriever(chunks, language)
+    retriever = create_retriever(chunks, language)
     print("Retriever created successfully.")
 
 

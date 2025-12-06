@@ -1,6 +1,6 @@
 from langchain_experimental.text_splitter import SemanticChunker
 from langchain_ollama import OllamaEmbeddings
-from utils import load_embedding_config
+from utils import load_ollama_config
 from tqdm import tqdm
 import nltk
 
@@ -8,13 +8,13 @@ import nltk
 def chunk_documents(docs, language):
     # Initialize embedding model for semantic chunking
     # Using the same model as the retriever for consistency
-    ollama_config = load_embedding_config(language=language)
+    model = "embeddinggemma:300m" if language == "en" else "qwen3-embedding:0.6b"
     
     # Use FastOllamaEmbeddings for semantic chunker
-    print(f"Using Ollama model: {ollama_config['model']} at {ollama_config['host']}")
+    print(f"Using Ollama model: {model}")
     embeddings = OllamaEmbeddings(
-        model=ollama_config['model'],
-        base_url=ollama_config['host']
+        model=model,
+        base_url=load_ollama_config()['host']
     )
 
      # Collect texts and metadatas for batch processing

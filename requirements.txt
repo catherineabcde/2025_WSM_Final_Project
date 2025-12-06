@@ -1,21 +1,29 @@
+# Core dependencies
 faiss-cpu
 jsonlines
-rank_bm25
-jieba
-jsonlines
-nltk
-numpy
-ollama
-openai
-rouge
-rouge-chinese
-sentence-transformers
 tqdm
 PyYAML
 pydantic
+numpy
+openai
 pysbd
-langchain
+rank_bm25
+
+# NLP
+jieba
+nltk
+rouge
+rouge-chinese
+
+# Ollama
+ollama
+
+# LangChain (for chunking)
 langchain-experimental
-langchain-huggingface
 langchain_ollama
 langchain-text-splitters
+
+# LlamaIndex (for retrieval)
+llama-index-core
+llama-index-retrievers-bm25
+llama-index-embeddings-ollama

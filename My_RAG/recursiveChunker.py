@@ -6,15 +6,22 @@ import os
 
 def recursive_chunk(docs, language, chunk_size):
     print(f"Chunk size: {chunk_size}, Overlap: {chunk_size // 5}")
-
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_size // 5,
-        length_function=len,
-        is_separator_regex=False,
+    if language == "zh":
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_size // 5,
+            length_function=len,
+            is_separator_regex=False,
+        separators=["\n\n", "\n", "。" ,"，" ,"；" ,"：" ,"？" ,"！" ,""],  # Will split by these in order
+        )
+    if language == "en":
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=chunk_size,
+            chunk_overlap=chunk_size // 5,
+            length_function=len,
+            is_separator_regex=False,
         separators=["\n\n", "\n", ". ", " ", ""],  # Will split by these in order
-    )
-    
+        )
     chunks = []
     
     for doc in tqdm(docs, desc="Recursive Chunking"):

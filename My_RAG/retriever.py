@@ -1,100 +1,100 @@
-from rank_bm25 import BM25Okapi
+"""
+Hybrid Retriever using LlamaIndex with Ollama embeddings (fully offline).
+Combines BM25 sparse retrieval with Vector dense retrieval (RRF fusion).
+Includes SimilarityPostprocessor for contextual compression.
+"""
+from llama_index.core import VectorStoreIndex, Settings
+from llama_index.core.schema import TextNode
+from llama_index.core.retrievers import QueryFusionRetriever
+from llama_index.core.postprocessor import SimilarityPostprocessor
+from llama_index.retrievers.bm25 import BM25Retriever
+from llama_index.embeddings.ollama import OllamaEmbedding
+from llama_index.core import StorageContext, load_index_from_storage
 import jieba
-import numpy as np
-import ollama
-import faiss
-from utils import rrf_fusion, SimpleHit , load_embedding_config
 import os
-from tqdm import tqdm
+from utils import load_ollama_config
 
-class HybridRetriever:
-    def __init__(self, chunks, language="en" , use_ollama=False, ollama_config=None):
-        self.chunks = chunks
+# Disable OpenAI defaults - use Ollama only (fully offline)
+Settings.llm = None
+Settings.embed_model = None
+
+
+def load_stopwords(filename):
+    filepath = os.path.join(os.path.dirname(__file__), filename)
+    if os.path.exists(filepath):
+        with open(filepath, 'r', encoding='utf-8') as f:
+            return set(line.strip() for line in f if line.strip())
+    return set()
+
+STOPWORDS_EN = load_stopwords('en_stopword')
+STOPWORDS_ZH = load_stopwords('zh_stopword')
+
+
+def tokenize(text: str) -> list[str]:
+    is_chinese = any('\u4e00' <= c <= '\u9fff' for c in text)
+    if is_chinese:
+        tokens = list(jieba.cut(text))
+        return [t for t in tokens if t.strip() and t not in STOPWORDS_ZH]
+    else:
+        tokens = text.lower().split()
+        return [t for t in tokens if t not in STOPWORDS_EN]
+
+
+class Retriever:
+    def __init__(self, chunks, language="en", chunksize=1024, similarity_threshold=0.5):
         self.language = language
-        self.use_ollama = use_ollama
-        self.ollama_config = ollama_config
-        self.corpus = [chunk['page_content'] for chunk in chunks]
         
-        if language == "zh":
-            self.tokenized_corpus = [list(jieba.cut(doc)) for doc in self.corpus]
-        else:
-            self.tokenized_corpus = [doc.split(" ") for doc in self.corpus]
-        self.bm25 = BM25Okapi(self.tokenized_corpus)
-
-        # Dense Index
-        if self.use_ollama and self.ollama_config:
-            print(f"Using Ollama model: {ollama_config['model']} at {ollama_config['host']}")
-            self.client = ollama.Client(host=ollama_config['host'])
-            self.model_name = ollama_config['model']
-            
-            # Generate embeddings using Ollama
-            # Note: Ollama python client might not support batch embedding efficiently in all versions, 
-            # but let's try to iterate if needed or use batch if supported.
-            # The denseRetriever.py uses self.client.embeddings(model=..., prompt=...) which is single input.
-            # We need to loop for corpus.
-            print("Generating embeddings with Ollama...")
-            embeddings = []
-            batch_size = 32
-            for i in tqdm(range(0, len(self.corpus), batch_size), desc="Generating embeddings"):
-                batch_docs = self.corpus[i : i + batch_size]
-                try:
-                    response = self.client.embed(model=self.model_name, input=batch_docs)
-                    embeddings.extend(response['embeddings'])
-                except Exception as e:
-                    print(f"Error embedding batch {i}: {e}")
-                    raise e
-        else:
-            raise ValueError("No Ollama config found. Please check your configuration files.")
-            
-        self.doc_embeddings = np.array(embeddings).astype('float32')
-        dimension = self.doc_embeddings.shape[1]
-        self.index = faiss.IndexFlatIP(dimension)
-        faiss.normalize_L2(self.doc_embeddings)
-        self.index.add(self.doc_embeddings)
-
+        # Convert to LlamaIndex nodes
+        nodes = [
+            TextNode(
+                text=c['page_content'],
+                metadata={**c.get('metadata', {}), 'chunk_id': i}
+            ) for i, c in enumerate(chunks)
+        ]
+        
+        # Select embedding model (Ollama - offline)
+        model = "embeddinggemma:300m" if language == "en" else "qwen3-embedding:0.6b"
+        self.embed_model = OllamaEmbedding(
+            model_name=model,
+            base_url=load_ollama_config()['host'],
+            embed_batch_size=100
+        )
+        Settings.embed_model = self.embed_model
+        
+        # 1. BM25 Retriever
+        bm25 = BM25Retriever.from_defaults(
+            nodes=nodes,
+            similarity_top_k=100,
+            tokenizer=tokenize
+        )
+        
+        vector_index = VectorStoreIndex(nodes, embed_model=self.embed_model, show_progress=True)        
+        vector = vector_index.as_retriever(similarity_top_k=100)
+        
+        # 2. Hybrid Fusion (RRF)
+        self.retriever = QueryFusionRetriever(
+            retrievers=[bm25, vector],
+            retriever_weights=[0.2, 0.8],
+            similarity_top_k=100,
+            num_queries=1,
+            mode="reciprocal_rerank",
+        )
+        
     def retrieve(self, query, top_k=5):
-        candidate_k = min(100, len(self.chunks))
-        if self.language == "zh":
-            tokenized_query = list(jieba.cut(query))
-        else:
-            tokenized_query = query.split(" ")
-        bm25_scores = self.bm25.get_scores(tokenized_query)
-        sparse_top_indices = np.argsort(bm25_scores)[::-1][:candidate_k]
-        sparse_hits = [SimpleHit(docid=idx, score=bm25_scores[idx]) for idx in sparse_top_indices]
-
-        response = self.client.embeddings(model=self.model_name, prompt=query)
-        query_vector = np.array([response['embedding']]).astype('float32')
-        faiss.normalize_L2(query_vector)
-        dense_scores, dense_indices = self.index.search(query_vector, candidate_k)
-        
-        dense_hits = []
-        for score, idx in zip(dense_scores[0], dense_indices[0]):
-            if idx != -1:
-                dense_hits.append(SimpleHit(docid=idx, score=score))
-
-        rrf_results = rrf_fusion(sparse_hits, dense_hits, k=60)
-        top_chunks = []
-        for docid, score in rrf_results[:top_k]:
-            original_chunk = self.chunks[docid]
-            emb = self.doc_embeddings[docid]
-            result_chunk = {
-                'page_content': original_chunk['page_content'],
+        # Get initial results
+        nodes = self.retriever.retrieve(query)
+                
+        return [
+            {
+                'page_content': n.node.get_content(),
                 'metadata': {
-                    'id': docid,
-                    'score': score,
-                    'type': 'hybrid_rf'
-                },
-                'embedding': emb # return embedding for later use
-            }
-            top_chunks.append(result_chunk)
+                    'score': n.score or 1.0 / (i + 1),
+                    'type': 'hybrid_llamaindex_compressed',
+                    **n.node.metadata
+                }
+            } for i, n in enumerate(nodes[:top_k])
+        ]
 
-        return top_chunks
 
-def create_retriever(chunks, language):
-    """Creates a hybrid retriever from document chunks."""
-    ollama_config = load_embedding_config(language=language)
-
-    if not ollama_config:
-        raise ValueError("Failed to load Ollama config. Please check your configuration files.")
-
-    return HybridRetriever(chunks, language, use_ollama=True, ollama_config=ollama_config)
+def create_retriever(chunks, language , similarity_threshold=0.5):
+    return Retriever(chunks, language , similarity_threshold)
