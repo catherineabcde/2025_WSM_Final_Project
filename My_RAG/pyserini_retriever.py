@@ -44,8 +44,8 @@ class HybridRetriever:
                     'metadata': {
                         'id': hit.docid,
                         'score': hit.score,
-                        'sparse_ratio': hit.sparse_ratio,
-                        'dense_ratio': hit.dense_ratio
+                        'sparse_ratio': sparse_ratio,
+                        'dense_ratio': dense_ratio
                     }
                 }
                 retrieved_chunks.append(chunk)
