@@ -11,6 +11,10 @@ EN_DENSE_INDEX = 'en_dense_index'
 ZH_SPARSE_INDEX = 'zh_sparse_indexes/collections'
 ZH_DENSE_INDEX = 'zh_dense_index'
 
+LOCAL_BGE_MODEL_PATH = 'local_encoder_model'
+LOCAL_EN_MODEL_PATH = 'local_en_encoder_model'
+
+
 class HybridRetriever:
     def __init__(self, language="en"):
         self.language = language
@@ -19,13 +23,13 @@ class HybridRetriever:
             self.sparse_searcher = LuceneSearcher(ZH_SPARSE_INDEX)
             self.sparse_searcher.set_language('zh')
             # Dense
-            encoder = AutoQueryEncoder('BAAI/bge-base-zh-v1.5', pooling='mean', device='cpu')
+            encoder = AutoQueryEncoder(LOCAL_BGE_MODEL_PATH, pooling='mean', device='cpu')
             self.dense_searcher = FaissSearcher(ZH_DENSE_INDEX, encoder)
         else:
             # Sparse
             self.sparse_searcher = LuceneSearcher.from_prebuilt_index(EN_SPARSE_INDEX)
             # Dense
-            encoder = TctColBertQueryEncoder('castorini/tct_colbert-msmarco', device='cpu')
+            encoder = TctColBertQueryEncoder(LOCAL_EN_MODEL_PATH, device='cpu')
             self.dense_searcher = FaissSearcher.from_prebuilt_index(EN_DENSE_INDEX, encoder)
         # Hybrid
         self.hybrid_searcher = HybridSearcher(self.dense_searcher, self.sparse_searcher)
