@@ -20,18 +20,18 @@ def save_jsonl(file_path, data):
             writer.write(item)
 
 # For Hybrid Retriever
-def rrf_fusion(sparse_hits, dense_hits, k=60):
+def rrf_fusion(sparse_hits, dense_hits, sparse_ratio, dense_ratio,k=60):
     scores = {}
     for rank, hit in enumerate(sparse_hits):
         docid = hit.docid
         if docid not in scores:
             scores[docid] = 0
-        scores[docid] += 1 / (k + rank + 1)
+        scores[docid] += sparse_ratio * 1 / (k + rank + 1)
     for rank, hit in enumerate(dense_hits):
         docid = hit.docid
         if docid not in scores:
             scores[docid] = 0
-        scores[docid] += 1 / (k + rank + 1)
+        scores[docid] += dense_ratio * 1 / (k + rank + 1)
     return sorted(scores.items(), key=lambda x: x[1], reverse=True)
 
 def load_ollama_config() -> dict:
