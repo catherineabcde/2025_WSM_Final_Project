@@ -82,7 +82,7 @@ class Retriever:
             retriever_weights=[bm25_weight, vector_weight],
             similarity_top_k=100,
             num_queries=1,
-            mode="reciprocal_rerank",
+            mode="relative_score",
         )
         
     def retrieve(self, query, top_k=5):
