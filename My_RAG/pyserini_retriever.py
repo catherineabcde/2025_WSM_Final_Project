@@ -4,6 +4,7 @@ from pyserini.search.faiss import FaissSearcher
 from pyserini.encode import TctColBertQueryEncoder, AutoQueryEncoder
 import json
 from utils import rrf_fusion
+import os
 
 EN_SPARSE_INDEX = 'en_sparse_indexes/collections'
 EN_DENSE_INDEX = 'en_dense_index'
@@ -17,19 +18,26 @@ LOCAL_EN_MODEL_PATH = 'local_en_encoder_model'
 
 class HybridRetriever:
     def __init__(self, language="en"):
+        current_dir = os.path.dirname(os.path.abspath(__file__))
         self.language = language
         if language == "zh":
             # Sparse
             self.sparse_searcher = LuceneSearcher(ZH_SPARSE_INDEX)
             self.sparse_searcher.set_language('zh')
             # Dense
-            encoder = AutoQueryEncoder(LOCAL_BGE_MODEL_PATH, pooling='mean', device='cpu')
+            model_abs_path = os.path.join(current_dir, 'local_encoder_model')
+            if not os.path.exists(os.path.join(model_abs_path, 'config.json')):
+                raise FileNotFoundError(f"Can't find config.json in {model_abs_path}")
+            encoder = AutoQueryEncoder(model_abs_path, pooling='mean', device='cpu')
             self.dense_searcher = FaissSearcher(ZH_DENSE_INDEX, encoder)
         else:
             # Sparse
             self.sparse_searcher = LuceneSearcher.from_prebuilt_index(EN_SPARSE_INDEX)
             # Dense
-            encoder = TctColBertQueryEncoder(LOCAL_EN_MODEL_PATH, device='cpu')
+            model_abs_path = os.path.join(current_dir, 'local_en_encoder_model')
+            if not os.path.exists(os.path.join(model_abs_path, 'config.json')):
+                raise FileNotFoundError(f"Can't find config.json in {model_abs_path}")
+            encoder = TctColBertQueryEncoder(model_abs_path, device='cpu')
             self.dense_searcher = FaissSearcher.from_prebuilt_index(EN_DENSE_INDEX, encoder)
         # Hybrid
         self.hybrid_searcher = HybridSearcher(self.dense_searcher, self.sparse_searcher)
