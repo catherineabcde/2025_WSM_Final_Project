@@ -1,9 +1,7 @@
 from tqdm import tqdm
 from pathlib import Path
 from utils import load_jsonl, save_jsonl
-#from chunker import chunk_documents
 from retriever import create_retriever
-from semanticChunker import chunk_documents
 from recursiveChunker import recursive_chunk
 from generator import generate_answer
 import argparse
@@ -20,9 +18,9 @@ def main(query_path, docs_path, language, output_path):
     # 2. Chunk Documents
     print("Chunking documents...")
     if language=="zh":
-        chunks = chunk_documents(docs_for_chunking, language)
+        chunks = recursive_chunk(docs_for_chunking, language, chunk_size=256)
     else:
-        chunks = recursive_chunk(docs_for_chunking, language, chunk_size=1024)
+        chunks = recursive_chunk(docs_for_chunking, language, chunk_size=512)
     print(f"Created {len(chunks)} chunks.")
 
     # 3. Create Retriever
@@ -35,9 +33,9 @@ def main(query_path, docs_path, language, output_path):
         # 4. Retrieve relevant chunks
         query_text = query["query"]["content"]
         if language == "zh":
-            FINAL_TOP_K = 5
+            FINAL_TOP_K = 7
         elif language == "en":
-            FINAL_TOP_K = 5
+            FINAL_TOP_K = 3
 
         # choose mode: "none" / "multi" / "hyde" / "decompose" / "stepback"
         rewritten_queries = rewrite_query(

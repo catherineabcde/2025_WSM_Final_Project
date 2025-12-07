@@ -57,7 +57,7 @@ class Retriever:
         self.embed_model = OllamaEmbedding(
             model_name=model,
             base_url=load_ollama_config()['host'],
-            embed_batch_size=100
+            embed_batch_size=512
         )
         Settings.embed_model = self.embed_model
         
