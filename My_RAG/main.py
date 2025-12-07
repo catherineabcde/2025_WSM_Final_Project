@@ -2,8 +2,8 @@ from tqdm import tqdm
 from pathlib import Path
 from utils import load_jsonl, save_jsonl
 #from chunker import chunk_documents
-# from retriever import create_retriever
-from pyserini_retriever import create_retriever
+from retriever import create_retriever
+# from pyserini_retriever import create_retriever
 from denseRetriever import dense_retriever 
 from dynamicChunker import chunk_documents
 from recursiveChunker import recursive_chunk
