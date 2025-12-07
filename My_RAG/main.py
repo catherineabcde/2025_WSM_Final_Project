@@ -38,7 +38,7 @@ def main(query_path, docs_path, language, output_path):
             FINAL_TOP_K = 5
         elif language == "en":
             FINAL_TOP_K = 5
-        '''
+
         # choose mode: "none" / "multi" / "hyde" / "decompose" / "stepback"
         rewritten_queries = rewrite_query(
             query_text,
@@ -63,13 +63,17 @@ def main(query_path, docs_path, language, output_path):
             meta = c.get("metadata", {})
             key = meta.get("id")
             if key is None:
-                key = id(c)
+                # Fallback for DenseRetriever which likely has doc_id and chunk_index
+                if "doc_id" in meta and "chunk_index" in meta:
+                    key = (meta["doc_id"], meta["chunk_index"])
+                else:
+                    key = id(c)
             if key not in unique:
                 unique[key] = c
 
         final_chunks = list(unique.values())[:FINAL_TOP_K]
-        '''
-        final_chunks = retriever.retrieve(query_text, top_k=FINAL_TOP_K)
+
+        #final_chunks = retriever.retrieve(query_text, top_k=FINAL_TOP_K)  
         # 5. Generate Answer
         print("Generating answer...")
         answer = generate_answer(query_text, final_chunks, language)
