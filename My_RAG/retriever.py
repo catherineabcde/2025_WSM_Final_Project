@@ -85,7 +85,12 @@ class Retriever:
             mode="relative_score",
         )
         
-    def retrieve(self, query, top_k=5):
+    def retrieve(self, query, top_k=None):
+        if top_k is None:
+            if self.language == "zh":
+                top_k = 3
+            else:
+                top_k = 5
         # Get initial results
         nodes = self.retriever.retrieve(query)
                 
