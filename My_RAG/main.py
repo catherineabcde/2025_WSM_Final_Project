@@ -37,6 +37,7 @@ def main(query_path, docs_path, language, output_path):
         elif language == "en":
             FINAL_TOP_K = 3
 
+        '''
         # choose mode: "none" / "multi" / "hyde" / "decompose" / "stepback"
         rewritten_queries = rewrite_query(
             query_text,
@@ -63,6 +64,8 @@ def main(query_path, docs_path, language, output_path):
                 seen.add(key)
                 unique.append(c)
         retrieved_chunks = unique
+        '''
+        retrieved_chunks = retriever.retrieve(query_text, top_k=FINAL_TOP_K)
 
         # 檢索後讓 LLM 判斷每個 chunk 是否相關
         filtered_chunks = []
