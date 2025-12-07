@@ -3,6 +3,46 @@ from pathlib import Path
 import yaml
 from utils import load_ollama_config
 
+def judge_relevance(query, chunk_text, language):
+    """
+    Use LLM to judge if a chunk is relevant to the query.
+    Returns True if relevant, False otherwise.
+    """
+    if language == "zh":
+        prompt = f"""判斷以下內容是否與問題相關。只回答「是」或「否」。
+
+問題：{query}
+
+內容：{chunk_text}
+
+回答（是/否）："""
+    else:
+        prompt = f"""Determine if the following content is relevant to the question. Answer only "Yes" or "No".
+
+Question: {query}
+
+Content: {chunk_text}
+
+Answer (Yes/No):"""
+
+    try:
+        ollama_config = load_ollama_config()
+        client = Client(host=ollama_config["host"])
+        response = client.generate(
+            model=ollama_config["model"],
+            prompt=prompt,
+            stream=False,
+            options={
+                "temperature": 0.1,
+                "num_ctx": 2048,
+            }
+        )
+        answer = response["response"].strip().lower()
+        # Check for positive answers
+        return any(word in answer for word in ["是", "yes", "相關", "relevant"])
+    except Exception as e:
+        # If error, assume relevant to avoid losing chunks
+        return True
 
 def generate_answer(query, context_chunks, language):
     formatted_context = []

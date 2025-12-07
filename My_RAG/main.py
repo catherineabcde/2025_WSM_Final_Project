@@ -3,7 +3,7 @@ from pathlib import Path
 from utils import load_jsonl, save_jsonl
 from retriever import create_retriever
 from recursiveChunker import recursive_chunk
-from generator import generate_answer
+from generator import generate_answer, judge_relevance
 import argparse
 from query_rewriter import rewrite_query
 
@@ -18,7 +18,7 @@ def main(query_path, docs_path, language, output_path):
     # 2. Chunk Documents
     print("Chunking documents...")
     if language=="zh":
-        chunks = recursive_chunk(docs_for_chunking, language, chunk_size=512)
+        chunks = recursive_chunk(docs_for_chunking, language, chunk_size=256)
     else:
         chunks = recursive_chunk(docs_for_chunking, language, chunk_size=512)
     print(f"Created {len(chunks)} chunks.")
@@ -56,20 +56,25 @@ def main(query_path, docs_path, language, output_path):
             all_chunks.extend(retrieved)
 
         # Deduplicate by retriever_id
-        unique = {}
+        seen, unique = set(), []
         for c in all_chunks:
-            meta = c.get("metadata", {})
-            key = meta.get("id")
-            if key is None:
-                # Fallback for DenseRetriever which likely has doc_id and chunk_index
-                if "doc_id" in meta and "chunk_index" in meta:
-                    key = (meta["doc_id"], meta["chunk_index"])
-                else:
-                    key = id(c)
-            if key not in unique:
-                unique[key] = c
+            key = c.get("metadata", {}).get("id") or id(c)
+            if key not in seen:
+                seen.add(key)
+                unique.append(c)
+        retrieved_chunks = unique
 
-        final_chunks = list(unique.values())[:FINAL_TOP_K]
+        # 檢索後讓 LLM 判斷每個 chunk 是否相關
+        filtered_chunks = []
+        for chunk in retrieved_chunks:
+            chunk_text = chunk.get("page_content", "")
+            if judge_relevance(query_text, chunk_text, language):
+                filtered_chunks.append(chunk)
+        
+        if not filtered_chunks:
+            filtered_chunks = retrieved_chunks
+
+        final_chunks = filtered_chunks[:FINAL_TOP_K]
 
         #final_chunks = retriever.retrieve(query_text, top_k=FINAL_TOP_K)  
         # 5. Generate Answer

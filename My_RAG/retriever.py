@@ -71,8 +71,8 @@ class Retriever:
         vector_index = VectorStoreIndex(nodes, embed_model=self.embed_model, show_progress=True)        
         vector = vector_index.as_retriever(similarity_top_k=100)
         if language == "zh":
-            bm25_weight = 0.0
-            vector_weight = 1.0
+            bm25_weight = 0.2
+            vector_weight = 0.8
         else:
             bm25_weight = 0.2
             vector_weight = 0.8
