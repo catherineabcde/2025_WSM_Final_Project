@@ -27,3 +27,4 @@ langchain-text-splitters
 llama-index-core
 llama-index-retrievers-bm25
 llama-index-embeddings-ollama
+llama-index-llms-ollama

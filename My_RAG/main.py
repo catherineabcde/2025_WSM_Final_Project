@@ -72,7 +72,7 @@ def main(query_path, docs_path, language, output_path):
             # for hyde mode
             #retrieved = retriever.retrieve(q, top_k=FINAL_TOP_K)
             # for multi mode
-            retrieved = retriever.retrieve(q, top_k=FINAL_TOP_K*CANDIDATE_FACTOR)
+            retrieved = retriever.retrieve(q.query_text, top_k=FINAL_TOP_K*CANDIDATE_FACTOR)
             all_chunks.extend(retrieved)
 
         # Deduplicate by retriever_id
