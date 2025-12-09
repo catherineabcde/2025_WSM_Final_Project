@@ -5,7 +5,7 @@ from retriever import create_retriever
 from recursiveChunker import recursive_chunk
 from generator import generate_answer, judge_relevance
 import argparse
-from query_rewriter import rewrite_query
+from llama_query_rewriter import rewrite_query
 from reranker import LLMReranker
 
 def main(query_path, docs_path, language, output_path):
@@ -29,6 +29,16 @@ def main(query_path, docs_path, language, output_path):
     retriever = create_retriever(chunks, language)
     print("Retriever created successfully.")
 
+        # Define rewrite mode based on language strategies
+    if language == 'zh':
+        # Chinese strategy: Multi (High accuracy and robustness)
+        rewrite_mode = 'multi'
+        print("Using strategy: Multi-Query Rewrite")
+    else:
+        # English strategy: Routing (Best balance of retrieval and generation)
+        rewrite_mode = 'routing'
+        print("Using strategy: Semantic Routing")
+
     #Create Reranker
     #Create Reranker
     reranker = None
@@ -51,7 +61,7 @@ def main(query_path, docs_path, language, output_path):
         rewritten_queries = rewrite_query(
             query_text,
             language=language,
-            mode="none",      # or "multi", "hyde", "decompose", "stepback" ,"none"
+            mode=rewrite_mode,      # or "multi", "hyde", "decompose", "stepback" ,"none"
             num_queries=3      # optional, for "multi"
         )
        
