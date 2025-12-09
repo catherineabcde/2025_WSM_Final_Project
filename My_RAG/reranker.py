@@ -16,8 +16,12 @@ class LLMReranker:
 
         scored_chunks = []
         for chunk in chunks:
+            if 'contextual_summary' in chunk['metadata']:
+                text = f"{chunk['metadata']['contextual_summary']}\n{chunk['page_content']}"
+            else:
+                text = chunk['page_content']
             try:
-                score = self._get_score(query, chunk['page_content'])
+                score = self._get_score(query, text)
                 chunk['metadata']['rerank_score'] = score
                 scored_chunks.append(chunk)
             except Exception as e:
