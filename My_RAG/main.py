@@ -3,10 +3,11 @@ from pathlib import Path
 from utils import load_jsonl, save_jsonl
 from retriever import create_retriever
 from recursiveChunker import recursive_chunk
-from generator import generate_answer, judge_relevance
+# from generator import generate_answer, judge_relevance
+from generator import generate_answer
 import argparse
 from llama_query_rewriter import rewrite_query
-from reranker import LLMReranker
+# from reranker import LLMReranker
 
 def main(query_path, docs_path, language, output_path):
     # 1. Load Data
@@ -41,11 +42,11 @@ def main(query_path, docs_path, language, output_path):
 
     #Create Reranker
     #Create Reranker
-    reranker = None
-    if language == "zh" or language == "en":
-        print(f"Creating reranker for {language}...")
-        reranker = LLMReranker(language)
-        print("Reranker created successfully.")
+    # reranker = None
+    # if language == "zh" or language == "en":
+    #     print(f"Creating reranker for {language}...")
+    #     reranker = LLMReranker(language)
+    #     print("Reranker created successfully.")
 
 
     for query in tqdm(queries, desc="Processing Queries"):
@@ -71,8 +72,14 @@ def main(query_path, docs_path, language, output_path):
         for q in rewritten_queries:
             # for hyde mode
             #retrieved = retriever.retrieve(q, top_k=FINAL_TOP_K)
+            if hasattr(q, 'query_text'): # 處理不同 rewrite 回傳格式的防呆
+                q_text = q.query_text
+            else:
+                q_text = str(q)
+                
+            retrieved = retriever.retrieve(q_text, top_k=FINAL_TOP_K)
             # for multi mode
-            retrieved = retriever.retrieve(q.query_text, top_k=FINAL_TOP_K*CANDIDATE_FACTOR)
+            # retrieved = retriever.retrieve(q.query_text, top_k=FINAL_TOP_K*CANDIDATE_FACTOR)
             all_chunks.extend(retrieved)
 
         # Deduplicate by retriever_id
@@ -82,25 +89,27 @@ def main(query_path, docs_path, language, output_path):
             if key not in seen:
                 seen.add(key)
                 unique.append(c)
-        retrieved_chunks = unique
+        # retrieved_chunks = unique
+        final_chunks = unique[:FINAL_TOP_K]
         
         # 檢索後讓 LLM 判斷每個 chunk 是否相關
-        filtered_chunks = []
-        for chunk in retrieved_chunks:
-            chunk_text = chunk.get("page_content", "")
-            if judge_relevance(query_text, chunk_text, language):
-                filtered_chunks.append(chunk)
+        # filtered_chunks = []
+        # for chunk in retrieved_chunks:
+        #     chunk_text = chunk.get("page_content", "")
+        #     if judge_relevance(query_text, chunk_text, language):
+        #         filtered_chunks.append(chunk)
         
-        if not filtered_chunks:
-            filtered_chunks = retrieved_chunks
+        # if not filtered_chunks:
+        #     filtered_chunks = retrieved_chunks
 
         #Rerank if reranker is initialized
-        if reranker is not None:
-            final_chunks = reranker.rerank(query_text, filtered_chunks, top_k=FINAL_TOP_K)
-        else:
-            final_chunks = filtered_chunks[:FINAL_TOP_K]
+        # if reranker is not None:
+        #     final_chunks = reranker.rerank(query_text, filtered_chunks, top_k=FINAL_TOP_K)
+        # else:
+        #     final_chunks = filtered_chunks[:FINAL_TOP_K]
 
         #final_chunks = retriever.retrieve(query_text, top_k=FINAL_TOP_K)  
+        
         # 5. Generate Answer
         print("Generating answer...")
         answer = generate_answer(query_text, final_chunks, language)
