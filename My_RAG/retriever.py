@@ -84,6 +84,11 @@ class Retriever:
             num_queries=1,
             mode="relative_score",
         )
+        # Cross-encoder rerank
+        self.reranker_module = Reranker(
+            top_n=20,
+            use_fp16=True
+        )
         
     def retrieve(self, query, top_k=None):
         if top_k is None:
@@ -92,7 +97,8 @@ class Retriever:
             else:
                 top_k = 5
         # Get initial results
-        nodes = self.retriever.retrieve(query)
+        init_nodes = self.retriever.retrieve(query)
+        reranked_nodes = self.rerank_module.rerank(init_nodes, query)
                 
         return [
             {
@@ -102,7 +108,7 @@ class Retriever:
                     'type': 'hybrid_llamaindex_compressed',
                     **n.node.metadata
                 }
-            } for i, n in enumerate(nodes[:top_k])
+            } for i, n in enumerate(reranked_nodes[:top_k])
         ]
 
 
