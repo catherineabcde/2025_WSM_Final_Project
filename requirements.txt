@@ -28,3 +28,12 @@ llama-index-core
 llama-index-retrievers-bm25
 llama-index-embeddings-ollama
 llama-index-llms-ollama
+llama-index-postprocessor-flag-embedding-reranker
+
+# For Reranker
+torch
+transformers
+sentence-transformers
+accelerate
+scikit-learn
+protobuf
