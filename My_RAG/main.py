@@ -8,6 +8,7 @@ from generator import generate_answer
 import argparse
 from llama_query_rewriter import rewrite_query
 # from reranker import LLMReranker
+from merge_model import merge_files
 import os
 
 def main(query_path, docs_path, language, output_path):
