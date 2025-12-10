@@ -99,7 +99,7 @@ class Retriever:
                 top_k = 5
         # Get initial results
         init_nodes = self.retriever.retrieve(query)
-        reranked_nodes = self.rerank_module.rerank(init_nodes, query)
+        reranked_nodes = self.reranker_module.rerank(init_nodes, query)
                 
         return [
             {
