@@ -33,7 +33,6 @@ llama-index-postprocessor-flag-embedding-reranker
 # For Reranker
 accelerate
 datasets
-ir-datasets
 scikit-learn
 sentencepiece
 sentence-transformers
