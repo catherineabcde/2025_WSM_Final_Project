@@ -2,7 +2,7 @@ from llama_index.postprocessor.flag_embedding_reranker import FlagEmbeddingReran
 import os
 
 class Reranker:
-    def __init__(self, model_name="BAAI/bge-reranker-v2-m3", top_n=3, use_fp16=True):
+    def __init__(self, model_name="BAAI/bge-reranker-base", top_n=3, use_fp16=True):
         """
         初始化 Reranker 模型
         :param model_name: 使用的模型名稱 (預設 bge-reranker-v2-m3)

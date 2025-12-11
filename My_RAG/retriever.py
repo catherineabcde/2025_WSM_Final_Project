@@ -62,15 +62,16 @@ class Retriever:
         )
         Settings.embed_model = self.embed_model
         
+        self.retrieve_topk = 100
         # 1. BM25 Retriever
         bm25 = BM25Retriever.from_defaults(
             nodes=nodes,
-            similarity_top_k=100,
+            similarity_top_k=self.retrieve_topk,
             tokenizer=tokenize
         )
         
         vector_index = VectorStoreIndex(nodes, embed_model=self.embed_model, show_progress=True)        
-        vector = vector_index.as_retriever(similarity_top_k=100)
+        vector = vector_index.as_retriever(similarity_top_k=self.retrieve_topk)
         if language == "zh":
             bm25_weight = 0.2
             vector_weight = 0.8
@@ -81,14 +82,14 @@ class Retriever:
         self.retriever = QueryFusionRetriever(
             retrievers=[bm25, vector],
             retriever_weights=[bm25_weight, vector_weight],
-            similarity_top_k=100,
+            similarity_top_k=self.retrieve_topk,
             num_queries=1,
             mode="relative_score",
         )
         # Cross-encoder rerank
         self.reranker_module = Reranker(
-            top_n=20,
-            use_fp16=True
+            api_url="http://ollama-gateway:11434/rerank",
+            top_n=self.retrieve_topk
         )
         
     def retrieve(self, query, top_k=None):
@@ -105,7 +106,7 @@ class Retriever:
             {
                 'page_content': n.node.get_content(),
                 'metadata': {
-                    'score': n.score or 1.0 / (i + 1),
+                    'score': n.score, # Use the reranked score
                     'type': 'hybrid_llamaindex_compressed',
                     **n.node.metadata
                 }
