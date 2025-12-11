@@ -30,7 +30,7 @@ def main(query_path, docs_path, language, output_path):
     # 2. Chunk Documents
     print("Chunking documents...")
     if language=="zh":
-        chunks = recursive_chunk(docs_for_chunking, language, chunk_size=256)
+        chunks = recursive_chunk(docs_for_chunking, language, chunk_size=128)
     else:
         chunks = recursive_chunk(docs_for_chunking, language, chunk_size=512)
     print(f"Created {len(chunks)} chunks.")
@@ -50,20 +50,11 @@ def main(query_path, docs_path, language, output_path):
         rewrite_mode = 'none'
         #print("Using strategy: Semantic Routing")
 
-    #Create Reranker
-    #Create Reranker
-    # reranker = None
-    # if language == "zh" or language == "en":
-    #     print(f"Creating reranker for {language}...")
-    #     reranker = LLMReranker(language)
-    #     print("Reranker created successfully.")
-
-
     for query in tqdm(queries, desc="Processing Queries"):
         # 4. Retrieve relevant chunks
         query_text = query["query"]["content"]
         if language == "zh":
-            FINAL_TOP_K = 7
+            FINAL_TOP_K = 5
         elif language == "en":
             FINAL_TOP_K = 3
 
@@ -102,23 +93,6 @@ def main(query_path, docs_path, language, output_path):
         # retrieved_chunks = unique
         final_chunks = unique[:FINAL_TOP_K]
         
-        # 檢索後讓 LLM 判斷每個 chunk 是否相關
-        # filtered_chunks = []
-        # for chunk in retrieved_chunks:
-        #     chunk_text = chunk.get("page_content", "")
-        #     if judge_relevance(query_text, chunk_text, language):
-        #         filtered_chunks.append(chunk)
-        
-        # if not filtered_chunks:
-        #     filtered_chunks = retrieved_chunks
-
-        #Rerank if reranker is initialized
-        # if reranker is not None:
-        #     final_chunks = reranker.rerank(query_text, filtered_chunks, top_k=FINAL_TOP_K)
-        # else:
-        #     final_chunks = filtered_chunks[:FINAL_TOP_K]
-
-        #final_chunks = retriever.retrieve(query_text, top_k=FINAL_TOP_K)  
         
         # 5. Generate Answer
         print("Generating answer...")
@@ -127,7 +101,7 @@ def main(query_path, docs_path, language, output_path):
 
         query["prediction"]["content"] = answer
         if final_chunks:
-            query["prediction"]["references"] = [c["page_content"] for c in final_chunks]   
+            query["prediction"]["references"] = [c["metadata"].get("original_content", c["page_content"]) for c in final_chunks]   
         else:
             query["prediction"]["references"] = []  
 

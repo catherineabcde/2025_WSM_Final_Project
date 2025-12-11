@@ -10,10 +10,11 @@ from llama_index.core.postprocessor import SimilarityPostprocessor
 from llama_index.retrievers.bm25 import BM25Retriever
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.core import StorageContext, load_index_from_storage
+from pyserini_bm25 import PyseriniBM25Retriever
 import jieba
 import os
 from utils import load_ollama_config
-# from flag_reranker import Reranker
+#from flag_reranker import Reranker
 from flag_reranker_submit import Reranker
 
 # Disable OpenAI defaults - use Ollama only (fully offline)
@@ -59,17 +60,32 @@ class Retriever:
         self.embed_model = OllamaEmbedding(
             model_name=model,
             base_url=load_ollama_config()['host'],
-            embed_batch_size=512
+            embed_batch_size=64,
+            options={"num_parallel": 6}
         )
         Settings.embed_model = self.embed_model
         
         self.retrieve_topk = 100
         # 1. BM25 Retriever
-        bm25 = BM25Retriever.from_defaults(
-            nodes=nodes,
-            similarity_top_k=self.retrieve_topk,
-            tokenizer=tokenize
-        )
+        if language == "en":
+            bm25 = BM25Retriever.from_defaults(
+                nodes=nodes,
+                similarity_top_k=self.retrieve_topk,
+                tokenizer=tokenize
+            )
+        else:
+            if isinstance(chunksize, (int, float)) or str(chunksize).replace('.', '').isdigit():
+                bm25_index_path = f"./bm25_index_cache/{language}_chunksize{chunksize}"
+            else:
+                bm25_index_path = f"./bm25_index_cache/{language}_{chunksize}"
+            bm25 = PyseriniBM25Retriever.from_defaults(
+                nodes=nodes,
+                language=language,
+                similarity_top_k=self.retrieve_topk,
+                index_path=bm25_index_path,
+                k1=1.2,
+                b=0.75,
+            )
         
         vector_index = VectorStoreIndex(nodes, embed_model=self.embed_model, show_progress=True)        
         vector = vector_index.as_retriever(similarity_top_k=self.retrieve_topk)
@@ -101,7 +117,8 @@ class Retriever:
                 top_k = 5
         # Get initial results
         init_nodes = self.retriever.retrieve(query)
-        reranked_nodes = self.reranker_module.rerank(init_nodes, query)
+        nodes = init_nodes[:20]
+        reranked_nodes = self.reranker_module.rerank(nodes, query)
                 
         return [
             {
