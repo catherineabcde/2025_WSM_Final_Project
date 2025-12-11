@@ -13,7 +13,8 @@ from llama_index.core import StorageContext, load_index_from_storage
 import jieba
 import os
 from utils import load_ollama_config
-from flag_reranker import Reranker
+# from flag_reranker import Reranker
+from flag_reranker_submit import Reranker
 
 # Disable OpenAI defaults - use Ollama only (fully offline)
 Settings.llm = None
