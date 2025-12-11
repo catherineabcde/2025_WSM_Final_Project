@@ -9,7 +9,6 @@ class Reranker:
         :param top_n: 重排序後要保留前幾名
         :param use_fp16: 是否開啟半精度 (節省記憶體)
         """
-        print(f"🚀 Loading Reranker model: {model_name}...")
         local_model_path = os.path.join(os.path.dirname(__file__), "models", "bge-reranker-v2-m3")
         target_model = local_model_path if os.path.exists(local_model_path) else model_name
         self.model = FlagEmbeddingReranker(
@@ -25,5 +24,5 @@ class Reranker:
         :param query: 使用者的查詢字串
         :return: 排序後的節點列表
         """
-        # 執行 Rerank
+        # Rerank
         return self.model.postprocess_nodes(nodes, query_str=query)

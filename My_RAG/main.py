@@ -12,9 +12,15 @@ from merge_model import merge_files
 import os
 
 def main(query_path, docs_path, language, output_path):
+    
     # For reranker model merging
     model_dir = os.path.join(os.path.dirname(__file__), "models", "bge-reranker-v2-m3")
-    merge_files(model_dir, "model.safetensors", "model.safetensors.part_")
+    # If model.safetensors does not exist, merge the model
+    model_path = os.path.join(model_dir, "model.safetensors")
+    
+    if not Path(model_path).exists():
+        merge_files(model_dir, "model.safetensors", "model.safetensors.part_")
+    
     # 1. Load Data
     print("Loading documents...")
     docs_for_chunking = load_jsonl(docs_path)
