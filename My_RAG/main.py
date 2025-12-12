@@ -54,7 +54,7 @@ def main(query_path, docs_path, language, output_path):
         # 4. Retrieve relevant chunks
         query_text = query["query"]["content"]
         if language == "zh":
-            FINAL_TOP_K = 5
+            FINAL_TOP_K = 3
         elif language == "en":
             FINAL_TOP_K = 3
 

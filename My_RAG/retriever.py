@@ -14,7 +14,7 @@ from pyserini_bm25 import PyseriniBM25Retriever
 import jieba
 import os
 from utils import load_ollama_config
-#from flag_reranker import Reranker
+#from flag_reranker import Reranker 
 from flag_reranker_submit import Reranker
 
 # Disable OpenAI defaults - use Ollama only (fully offline)
@@ -90,8 +90,8 @@ class Retriever:
         vector_index = VectorStoreIndex(nodes, embed_model=self.embed_model, show_progress=True)        
         vector = vector_index.as_retriever(similarity_top_k=self.retrieve_topk)
         if language == "zh":
-            bm25_weight = 0.2
-            vector_weight = 0.8
+            bm25_weight = 0.4
+            vector_weight = 0.6
         else:
             bm25_weight = 0.2
             vector_weight = 0.8
@@ -105,7 +105,6 @@ class Retriever:
         )
         # Cross-encoder rerank
         self.reranker_module = Reranker(
-            api_url="http://ollama-gateway:11434/rerank",
             top_n=self.retrieve_topk
         )
         
