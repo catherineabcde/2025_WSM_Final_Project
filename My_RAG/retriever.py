@@ -87,8 +87,8 @@ class Retriever:
             bm25_weight = 0.4
             vector_weight = 0.6
         else:
-            bm25_weight = 0.4
-            vector_weight = 0.6
+            bm25_weight = 0.2
+            vector_weight = 0.8
         # 2. Hybrid Fusion (RRF)
         self.retriever = QueryFusionRetriever(
             retrievers=[bm25, vector],
