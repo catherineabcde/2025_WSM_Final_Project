@@ -67,25 +67,19 @@ class Retriever:
         
         self.retrieve_topk = 100
         # 1. BM25 Retriever
-        if language == "en":
-            bm25 = BM25Retriever.from_defaults(
-                nodes=nodes,
-                similarity_top_k=self.retrieve_topk,
-                tokenizer=tokenize
-            )
+        
+        if isinstance(chunksize, (int, float)) or str(chunksize).replace('.', '').isdigit():
+            bm25_index_path = f"./bm25_index_cache/{language}_chunksize{chunksize}"
         else:
-            if isinstance(chunksize, (int, float)) or str(chunksize).replace('.', '').isdigit():
-                bm25_index_path = f"./bm25_index_cache/{language}_chunksize{chunksize}"
-            else:
-                bm25_index_path = f"./bm25_index_cache/{language}_{chunksize}"
-            bm25 = PyseriniBM25Retriever.from_defaults(
-                nodes=nodes,
-                language=language,
-                similarity_top_k=self.retrieve_topk,
-                index_path=bm25_index_path,
-                k1=1.2,
-                b=0.75,
-            )
+            bm25_index_path = f"./bm25_index_cache/{language}_{chunksize}"
+        bm25 = PyseriniBM25Retriever.from_defaults(
+            nodes=nodes,
+            language=language,
+            similarity_top_k=self.retrieve_topk,
+            index_path=bm25_index_path,
+            k1=1.2,
+            b=0.75,
+        )
         
         vector_index = VectorStoreIndex(nodes, embed_model=self.embed_model, show_progress=True)        
         vector = vector_index.as_retriever(similarity_top_k=self.retrieve_topk)
@@ -103,11 +97,10 @@ class Retriever:
             num_queries=1,
             mode="relative_score",
         )
-        # Cross-encoder rerank (Only for Chinese)
-        if self.language == "zh":
-            self.reranker_module = Reranker(
-                top_n=self.retrieve_topk
-            )
+        # Cross-encoder rerank
+        self.reranker_module = Reranker(
+            top_n=self.retrieve_topk
+        )
         
     def retrieve(self, query, top_k=None):
         if top_k is None:
@@ -118,12 +111,9 @@ class Retriever:
         # Get initial results
         init_nodes = self.retriever.retrieve(query)
 
-        if self.language == "zh":
-            nodes = init_nodes[:20]
-            final_nodes = self.reranker_module.rerank(nodes, query)
-            final_nodes = final_nodes[:top_k]
-        else:
-            final_nodes = init_nodes[:top_k]
+        nodes = init_nodes[:20]
+        final_nodes = self.reranker_module.rerank(nodes, query)
+        final_nodes = final_nodes[:top_k]
                 
         return [
             {
@@ -137,5 +127,5 @@ class Retriever:
         ]
 
 
-def create_retriever(chunks, language , similarity_threshold=0.5):
-    return Retriever(chunks, language , similarity_threshold)
+def create_retriever(chunks, language ,chunksize, similarity_threshold=0.5):
+    return Retriever(chunks, language ,chunksize, similarity_threshold)

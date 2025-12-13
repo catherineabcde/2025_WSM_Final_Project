@@ -37,7 +37,8 @@ def main(query_path, docs_path, language, output_path):
 
     # 3. Create Retriever
     print("Creating retriever...")
-    retriever = create_retriever(chunks, language)
+    chunk_size = 128 if language == "zh" else 512
+    retriever = create_retriever(chunks, language , chunksize=chunk_size)
     print("Retriever created successfully.")
 
         # Define rewrite mode based on language strategies
