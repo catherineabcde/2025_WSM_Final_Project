@@ -7,7 +7,7 @@ from llama_index.core import VectorStoreIndex, Settings
 from llama_index.core.schema import TextNode
 from llama_index.core.retrievers import QueryFusionRetriever
 from llama_index.core.postprocessor import SimilarityPostprocessor
-from llama_index.retrievers.bm25 import BM25Retriever
+
 from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.core import StorageContext, load_index_from_storage
 from pyserini_bm25 import PyseriniBM25Retriever
