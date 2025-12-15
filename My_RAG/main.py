@@ -43,9 +43,9 @@ def main(query_path, docs_path, language, output_path):
 
     # Define rewrite mode
     if language == 'zh':
-        rewrite_mode = 'multi'
+        rewrite_mode = 'decompose'
     else:
-        rewrite_mode = 'multi' # or "multi", "hyde", "decompose", "none"
+        rewrite_mode = 'decompose' # or "multi", "hyde", "decompose", "none"
 
     for query in tqdm(queries, desc="Processing Queries"):
         # 4. Retrieve relevant chunks
